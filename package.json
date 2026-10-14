@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "headers:nginx": "node deploy/write-nginx-headers.js",
-    "deploy": "bash deploy/deploy.sh"
+    "headers:nginx": "node deploy/write-nginx-headers.js"
   },
   "dependencies": {
     "firebase": "^12.19.0",

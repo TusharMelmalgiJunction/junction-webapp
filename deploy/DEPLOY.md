@@ -1,6 +1,15 @@
 # Deploying the Junction web app (app.junctionverse.com)
 
-Static Vite build served by nginx on the same Ubuntu server as admin.junctionverse.com.
+Same setup as admin.junctionverse.com: the repo lives next to the other apps on the Ubuntu server,
+it's built in place, and nginx serves the build folder directly (no PM2 process).
+
+| Server path | What |
+|---|---|
+| `/home/ubuntu/junction/backend/junction-webapp` | This repo (`git clone`) |
+| `/home/ubuntu/junction/backend/junction-webapp/dist` | Build output nginx serves |
+| `/etc/nginx/sites-available/app.junctionverse.com` | From `deploy/nginx/app.junctionverse.com.conf` |
+| `/etc/nginx/snippets/junction-app-security-headers.conf` | From `deploy/nginx/security-headers.conf` |
+
 Files in this folder:
 
 | File | Purpose |
@@ -8,42 +17,39 @@ Files in this folder:
 | `nginx/app.junctionverse.com.conf` | nginx site: HTTPS, SPA routing, caching, security headers |
 | `nginx/security-headers.conf` | Generated header snippet (`npm run headers:nginx`); edit `securityHeaders.js`, not this |
 | `securityHeaders.js` | Source of the CSP and other headers (also used by `npm run preview`) |
-| `deploy.sh` | `npm run deploy`: build, upload a timestamped release, switch `current`; `--rollback` |
 
 ## One-time setup
 
 ### 1. DNS (GoDaddy)
-Add an **A record**: name `app`, value = the server's public IP (the same IP `admin.junctionverse.com`
-points to — GoDaddy shows it on the `admin` record). TTL 1 hour is fine. Check it before step 3:
-
+A record `app` → the server's public IP (same as the `admin` record). Check:
 ```bash
-nslookup app.junctionverse.com
+dig +short app.junctionverse.com
 ```
 
-### 2. Server folders
-```bash
-sudo mkdir -p /var/www/junction-app/releases
-sudo chown -R $USER:$USER /var/www/junction-app
-```
-(`$USER` = the account you deploy with, e.g. `ubuntu`.)
-
-### 3. TLS certificate
-nginx and certbot are already used for admin. Get a certificate without touching existing sites:
+### 2. TLS certificate
 ```bash
 sudo certbot certonly --nginx -d app.junctionverse.com
 ```
-Renewal is automatic (the existing certbot timer covers it).
+Renewal is automatic.
+
+### 3. Clone and build
+Needs Node 20.19+ or 22.12+ (`node -v`).
+```bash
+cd ~/junction/backend
+git clone git@github.com:TusharMelmalgiJunction/junction-webapp.git
+cd junction-webapp
+npm ci
+npm run build
+```
 
 ### 4. nginx site
-Copy the two files from `deploy/nginx/` to the server, then:
 ```bash
-sudo cp security-headers.conf /etc/nginx/snippets/junction-app-security-headers.conf
-sudo cp app.junctionverse.com.conf /etc/nginx/sites-available/app.junctionverse.com
-sudo ln -s /etc/nginx/sites-available/app.junctionverse.com /etc/nginx/sites-enabled/
+sudo cp deploy/nginx/security-headers.conf /etc/nginx/snippets/junction-app-security-headers.conf
+sudo cp deploy/nginx/app.junctionverse.com.conf /etc/nginx/sites-available/app.junctionverse.com
+sudo ln -sf /etc/nginx/sites-available/app.junctionverse.com /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
-If `nginx -t` complains about `options-ssl-nginx.conf` or `ssl-dhparams.pem`, the server's certbot
-setup doesn't use them; delete those two lines.
+Only reload if `nginx -t` reports the test is successful.
 
 ### 5. Firebase Web app (recommended before launch)
 The site currently uses the iOS app's Firebase API key (the "web" key in the Flutter config belongs to
@@ -54,33 +60,31 @@ then in Google Cloud console → Credentials restrict that key to HTTP referrer 
 
 ## Every deploy
 
-### Option A: on the server (repo cloned there)
-Needs Node 20.19+ or 22.12+ (`node -v`).
 ```bash
-cd ~/junction-webapp            # wherever the repo is cloned
+cd ~/junction/backend/junction-webapp
 git pull
 npm ci
-npm run deploy -- --local
+npm run build
 ```
-Roll back instantly: `npm run deploy -- --local --rollback`
+No nginx reload is needed: nginx serves the new files immediately. While the build runs (a few
+seconds) `dist` is being rewritten, so pages can briefly fail to load, the same as admin.
 
-### Option B: from your own machine (Git Bash), over SSH
-```bash
-DEPLOY_HOST=ubuntu@<server-ip> DEPLOY_SSH_KEY=~/.ssh/<key>.pem npm run deploy
-DEPLOY_HOST=ubuntu@<server-ip> DEPLOY_SSH_KEY=~/.ssh/<key>.pem npm run deploy -- --rollback
-```
-OpenSSH can't read PuTTY `.ppk` keys: export one with PuTTYgen → Conversions → Export OpenSSH key.
+The build refuses to run if `VITE_API_BASE_URL` is missing or not https (it comes from the committed
+`.env.production`). Don't create a `.env.local` on the server: it would override it.
 
-Either way, the build refuses to run if `VITE_API_BASE_URL` is missing or not https. `.env.local` also
-applies to builds, so don't put localhost URLs in it on the machine you build on.
+To go back to an earlier version: `git checkout <commit>` then `npm ci && npm run build`
+(and `git checkout main` before the next normal deploy).
+
+If the security headers change (`securityHeaders.js`), also run `npm run headers:nginx` locally, commit,
+and on the server re-copy the snippet (step 4) and reload nginx.
 
 ## After the first deploy
 
 - Open https://app.junctionverse.com, log in, open a listing, open chats and send a message. Then
   reload on a deep link (e.g. `/chats`) to confirm SPA routing.
 - Browser DevTools → Console should show no `Content-Security-Policy` errors. If something the app
-  needs is blocked, add the origin to `securityHeaders.js`, run `npm run headers:nginx`, copy the
-  snippet to the server and reload nginx.
+  needs is blocked, add the origin to `securityHeaders.js`, run `npm run headers:nginx`, re-copy the
+  snippet and reload nginx.
 - Check headers: `curl -sI https://app.junctionverse.com | grep -i -E "content-security|strict-transport"`
 - When CORS is restricted on the API later, include `https://app.junctionverse.com` in
   `CORS_ALLOWED_ORIGINS`.
