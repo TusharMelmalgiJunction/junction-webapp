@@ -1,0 +1,53 @@
+:root {
+  --color-brand-punchy-orange: #ff6705;
+  --color-brand-deep-purple: #3f2b81;
+  --color-brand-pastel-violet: #b184ff;
+  --color-brand-lavender-mist: #f6f6ff;
+  --color-brand-charcoal: #262626;
+  --color-text-primary: #212121;
+  --color-text-secondary: #505050;
+  --color-text-muted: #6b6975;
+  --color-text-light: #c9c8d3;
+  --color-text-on-dark: #ffffff;
+  --color-text-price: #c94c00;
+  --color-surface-page: #ffffff;
+  --color-surface-off-white: #f9f9f9;
+  --color-surface-card-border: #e3e3e3;
+  --color-surface-input-border: #c9c8d3;
+  --color-status-error: #b3261e;
+  --color-status-error-container: #f9dedc;
+  --color-status-success: #1f6b35;
+  --color-status-success-container: #ddf5e3;
+  --color-status-warning-container: #fff4d6;
+  --color-status-info-container: #f6f6ff;
+  --color-image-tint-blue: #e4eef6;
+  --color-image-tint-sand: #f3eee4;
+  --color-image-tint-lavender: #efedfb;
+  --color-image-tint-mint: #e6f2ea;
+  --color-image-tint-peach: #fcebdd;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-pill: 999px;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --header-h: 72px;
+  --page-pad: 48px;
+  --shadow-modal: 0 24px 60px rgba(33, 33, 33, 0.16);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background: var(--color-surface-page);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font-family: inherit; }
+a { color: var(--color-brand-deep-purple); text-decoration: none; }
+a:hover { color: #2a1c5c; }
+button { cursor: pointer; }
+img { max-width: 100%; display: block; }
