@@ -25,6 +25,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5174,
     strictPort: true,
+    // Local development against production without needing CORS for localhost: the browser
+    // calls /prod-api/... on this dev server and Vite forwards it to the API server-side.
+    // (.env.development sets VITE_API_BASE_URL=/prod-api; builds use .env.production.)
+    proxy: {
+      '/prod-api': {
+        // DEV_API_PROXY_TARGET (not exposed to the bundle) points the proxy elsewhere, e.g. a local API.
+        target: process.env.DEV_API_PROXY_TARGET || 'https://api.junctionverse.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/prod-api/, ''),
+      },
+    },
   },
   // Same headers as production (minus HSTS), so `npm run preview` shows CSP problems early.
   preview: {

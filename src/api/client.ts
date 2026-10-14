@@ -49,7 +49,8 @@ type RequestOptions = {
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const url = new URL(path, apiBase())
+  // Join rather than resolve, so the base can carry a path prefix (the dev proxy uses /prod-api).
+  const url = new URL(`${apiBase().replace(/\/+$/, '')}${path}`, window.location.origin)
   if (options.query) {
     for (const [key, value] of Object.entries(options.query)) {
       if (value !== undefined && value !== null && value !== '') {
