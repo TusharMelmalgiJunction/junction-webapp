@@ -54,17 +54,25 @@ then in Google Cloud console → Credentials restrict that key to HTTP referrer 
 
 ## Every deploy
 
-From this folder's parent (`junction-app/`), in Git Bash:
+### Option A: on the server (repo cloned there)
+Needs Node 20.19+ or 22.12+ (`node -v`).
+```bash
+cd ~/junction-webapp            # wherever the repo is cloned
+git pull
+npm ci
+npm run deploy -- --local
+```
+Roll back instantly: `npm run deploy -- --local --rollback`
+
+### Option B: from your own machine (Git Bash), over SSH
 ```bash
 DEPLOY_HOST=ubuntu@<server-ip> DEPLOY_SSH_KEY=~/.ssh/<key>.pem npm run deploy
-```
-The build refuses to run if `VITE_API_BASE_URL` is missing or not https. `.env.local` also applies to
-builds, so don't put localhost URLs in it on the machine you deploy from.
-
-Roll back to the previous release instantly:
-```bash
 DEPLOY_HOST=ubuntu@<server-ip> DEPLOY_SSH_KEY=~/.ssh/<key>.pem npm run deploy -- --rollback
 ```
+OpenSSH can't read PuTTY `.ppk` keys: export one with PuTTYgen → Conversions → Export OpenSSH key.
+
+Either way, the build refuses to run if `VITE_API_BASE_URL` is missing or not https. `.env.local` also
+applies to builds, so don't put localhost URLs in it on the machine you build on.
 
 ## After the first deploy
 
